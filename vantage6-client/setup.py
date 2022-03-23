@@ -37,7 +37,8 @@ setup(
         'pandas',
         'vantage6-common >= 1.2.3',
         'pyfiglet==0.8.post1',
-        'SPARQLWrapper==1.8.5'
+        'SPARQLWrapper==1.8.5',
+        'rich',
     ],
     tests_require=["pytest"],
     package_data={
