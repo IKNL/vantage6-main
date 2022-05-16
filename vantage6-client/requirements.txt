@@ -4,3 +4,5 @@ PyJWT==1.7.1
 vantage6-common >= 1.0.0b13
 pyfiglet==0.8.post1
 SPARQLWrapper==1.8.5
+rich==12.0.0
+ipywidgets==7.7.0
