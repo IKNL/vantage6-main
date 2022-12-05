@@ -8,6 +8,8 @@ REGISTRY ?= harbor2.vantage6.ai
 # infrastructure base image version
 BASE ?= 3
 
+PLATFORMS ?= linux/arm64,linux/amd64
+
 help:
 	@echo "Available commands to 'make':"
 	@echo "  set-version          : set version (e.g set-version FLAGS=\"--version 2.0.0 --build 0 --spec alpha\")"
@@ -65,7 +67,7 @@ base-image:
 	docker buildx build \
 		--tag ${REGISTRY}/infrastructure/infrastructure-base:${TAG} \
 		--tag ${REGISTRY}/infrastructure/infrastructure-base:latest \
-		--platform linux/arm64,linux/amd64 \
+		--platform ${PLATFORMS} \
 		-f ./docker/infrastructure-base.Dockerfile \
 		--push .
 
@@ -74,7 +76,7 @@ algorithm-base-image:
 	docker buildx build \
 		--tag ${REGISTRY}/infrastructure/algorithm-base:${TAG} \
 		--tag ${REGISTRY}/infrastructure/algorithm-base:latest \
-		--platform linux/arm64,linux/amd64 \
+		--platform ${PLATFORMS} \
 		-f ./docker/algorithm-base.Dockerfile \
 		--push .
 
@@ -87,21 +89,21 @@ support-image:
 	docker buildx build \
 		--tag ${REGISTRY}/infrastructure/alpine:${TAG} \
 		--tag ${REGISTRY}/infrastructure/alpine:latest \
-		--platform linux/arm64,linux/amd64 \
+		--platform ${PLATFORMS} \
 		-f ./docker/alpine.Dockerfile \
 		--push .
 
 	docker buildx build \
 		--tag ${REGISTRY}/infrastructure/vpn-client:${TAG} \
 		--tag ${REGISTRY}/infrastructure/vpn-client:latest \
-		--platform linux/arm64,linux/amd64 \
+		--platform ${PLATFORMS} \
 		-f ./docker/vpn-client.Dockerfile \
 		--push .
 
 	docker buildx build \
 		--tag ${REGISTRY}/infrastructure/vpn-configurator:${TAG} \
 		--tag ${REGISTRY}/infrastructure/vpn-configurator:latest \
-		--platform linux/arm64,linux/amd64 \
+		--platform ${PLATFORMS} \
 		-f ./docker/vpn-configurator.Dockerfile \
 		--push .
 
@@ -113,7 +115,7 @@ image:
 		--tag ${REGISTRY}/infrastructure/server:${TAG} \
 		--build-arg TAG=${TAG} \
 		--build-arg BASE=${BASE} \
-		--platform linux/arm64,linux/amd64 \
+		--platform ${PLATFORMS} \
 		-f ./docker/node-and-server.Dockerfile \
 		--push .
 
