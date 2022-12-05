@@ -385,7 +385,7 @@ class DockerTaskManager(DockerBaseManager):
             print('-' * 80)
             proxy_host = 'host.docker.internal'
 
-        # define enviroment variables for the docker-container, the
+        # Define environment variables for the docker-container, the
         # host, port and api_path are from the local proxy server to
         # facilitate indirect communication with the central server
         # FIXME: we should only prepend data_folder if database_uri is a
@@ -400,6 +400,12 @@ class DockerTaskManager(DockerBaseManager):
             "PORT": os.environ.get("PROXY_SERVER_PORT", 8080),
             "API_PATH": "",
         }
+
+        # Algorithm containers can communicate with sources outside the
+        # private Docker network using a proxy service.
+        # FIXME: if proxy
+        environment_variables['HTTP_PROXY'] = "http://tunnel:3001"
+        environment_variables['HTTPS_PROXY'] = "https://tunnel:3001"
 
         # Only prepend the data_folder is it is a file-based database
         # This allows algorithms to access multiple data-sources at the
