@@ -6,7 +6,6 @@ import pickle
 import docker.errors
 
 from enum import Enum
-from typing import Dict, List, Union
 from pathlib import Path
 
 from vantage6.common.globals import APPNAME
@@ -54,7 +53,7 @@ class DockerTaskManager(DockerBaseManager):
                  result_id: int, tasks_dir: Path,
                  isolated_network_mgr: NetworkManager,
                  databases: dict, docker_volume_name: str,
-                 alpine_image: Union[str, None] = None):
+                 alpine_image: str | None = None):
         """
         Initialization creates DockerTaskManager instance
 
@@ -166,7 +165,7 @@ class DockerTaskManager(DockerBaseManager):
             self.log.error(e)
 
     def run(self, docker_input: bytes, tmp_vol_name: str, token: str,
-            algorithm_env: Dict, database: str) -> List[Dict]:
+            algorithm_env: dict, database: str) -> list[dict]:
         """
         Runs the docker-image in detached mode.
 
@@ -181,12 +180,12 @@ class DockerTaskManager(DockerBaseManager):
             Name of temporary docker volume assigned to the algorithm
         token: str
             Bearer token that the container can use
-        algorithm_env: Dict
+        algorithm_env: dict
             Dictionary with additional environment variables to set
 
         Returns
         -------
-        List[Dict] or None
+        list[dict] | None
             Description of each port on the VPN client that forwards traffic to
             the algo container. None if VPN is not set up.
         """
@@ -212,7 +211,7 @@ class DockerTaskManager(DockerBaseManager):
         remove_container(self.helper_container, kill=True)
         remove_container(self.container, kill=True)
 
-    def _run_algorithm(self) -> List[Dict]:
+    def _run_algorithm(self) -> list[dict]:
         """
         Run the algorithm container
 
@@ -221,7 +220,7 @@ class DockerTaskManager(DockerBaseManager):
 
         Returns
         -------
-        List[Dict] or None
+        list[dict] or None
             Description of each port on the VPN client that forwards traffic to
             the algo container. None if VPN is inactive
         """
@@ -318,7 +317,7 @@ class DockerTaskManager(DockerBaseManager):
         os.makedirs(self.task_folder_path, exist_ok=True)
         self.output_file = os.path.join(self.task_folder_path, "output")
 
-    def _prepare_volumes(self, tmp_vol_name: str, token: str) -> Dict:
+    def _prepare_volumes(self, tmp_vol_name: str, token: str) -> dict:
         """
         Generate docker volumes required to run the algorithm
 
@@ -331,7 +330,7 @@ class DockerTaskManager(DockerBaseManager):
 
         Returns
         -------
-        Dict:
+        dict:
             Volumes to support running the algorithm
         """
         if isinstance(self.docker_input, str):
@@ -363,19 +362,21 @@ class DockerTaskManager(DockerBaseManager):
                 {"bind": self.data_folder, "mode": "rw"}
         return volumes
 
-    def _setup_environment_vars(self, algorithm_env: Dict = {},
-                                database: str = 'default') -> Dict:
+    def _setup_environment_vars(self, algorithm_env: dict,
+                                database: str = 'default') -> dict:
         """"
         Set environment variables required to run the algorithm
 
         Parameters
         ----------
-        algorithm_env: Dict
+        algorithm_env: dict
             Dictionary with additional environment variables to set
+        database: str
+            Label of the database to use
 
         Returns
         -------
-        Dict:
+        dict:
             Environment variables required to run algorithm
         """
         try:

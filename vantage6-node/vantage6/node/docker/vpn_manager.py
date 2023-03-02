@@ -404,7 +404,8 @@ class VPNManager(DockerBaseManager):
         )
         host_interfaces = json.loads(host_interfaces)
 
-        linked_interface = self._get_if(host_interfaces, link_index)
+        linked_interface = \
+            self._get_interface_from_idx(host_interfaces, link_index)
         bridge_interface = linked_interface['master']
         return bridge_interface
 
@@ -426,8 +427,8 @@ class VPNManager(DockerBaseManager):
                 isolated_interface = ip_interface
         return isolated_interface
 
-    def is_isolated_interface(self, ip_interface: Dict,
-                              vpn_ip_isolated_netw: str):
+    @staticmethod
+    def is_isolated_interface(ip_interface: Dict, vpn_ip_isolated_netw: str):
         """
         Return True if a network interface is the isolated network
         interface. Identify this based on the IP address of the VPN client in
@@ -481,7 +482,8 @@ class VPNManager(DockerBaseManager):
             remove=True,
         )
 
-    def _get_if(self, interfaces, index) -> Union[Dict, None]:
+    @staticmethod
+    def _get_interface_from_idx(interfaces, index) -> Union[Dict, None]:
         """ Get interface configuration based on interface index """
         for interface in interfaces:
             if int(interface['ifindex']) == index:
@@ -489,7 +491,8 @@ class VPNManager(DockerBaseManager):
 
         return None
 
-    def _get_link_index(self, if_json: Union[Dict, List]) -> int:
+    @staticmethod
+    def _get_link_index(if_json: Union[Dict, List]) -> int:
         if isinstance(if_json, list):
             if_json = if_json[-1]
         return int(if_json['link_index'])
