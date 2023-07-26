@@ -133,7 +133,7 @@ def data(number_of_databases: int = 1) -> callable:
 
             for i in range(number_of_databases):
                 label = labels[i]
-                data_ = _get_data_from_label(label, input_data)
+                data_ = get_data_from_label(label, input_data)
                 args = (data_, *args)
 
             return func(*args, **kwargs)
@@ -141,7 +141,7 @@ def data(number_of_databases: int = 1) -> callable:
     return protection_decorator
 
 
-def _get_data_from_label(label: str, input_data: Any) -> pd.DataFrame:
+def get_data_from_label(label: str, input_data: Any) -> pd.DataFrame:
     """
     Load data from a database based on the label
 

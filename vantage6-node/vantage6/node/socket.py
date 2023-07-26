@@ -4,6 +4,7 @@ from socketio import ClientNamespace
 
 from vantage6.common import logger_name
 from vantage6.common.task_status import TaskStatus, has_task_failed
+from vantage6.tools.decorators import get_data_from_label
 
 
 class NodeTaskNamespace(ClientNamespace):
@@ -18,7 +19,7 @@ class NodeTaskNamespace(ClientNamespace):
         super().__init__(*args, **kwargs)
         self.log = logging.getLogger(logger_name(__name__))
 
-    def on_message(self, msg):
+    def on_message(self, msg) -> None:
         """
         Receive messages over socket connection
 
@@ -29,19 +30,19 @@ class NodeTaskNamespace(ClientNamespace):
         """
         self.log.info(msg)
 
-    def on_connect(self):
+    def on_connect(self) -> None:
         """ Actions to be taken on socket connect (or reconnect) event """
         self.log.info('(Re)Connected to the /tasks namespace')
         self.node_worker_ref.sync_task_queue_with_server()
         self.log.debug("Tasks synced again with the server...")
         self.node_worker_ref.share_node_details()
 
-    def on_disconnect(self):
+    def on_disconnect(self) -> None:
         """ Actions to be taken on socket disconnect event. """
         # self.node_worker_ref.socketIO.disconnect()
         self.log.info('Disconnected from the server')
 
-    def on_new_task(self, task_id: int):
+    def on_new_task(self, task_id: int) -> None:
         """
         Actions to be taken when node is notified of new task by server
 
@@ -59,7 +60,7 @@ class NodeTaskNamespace(ClientNamespace):
                 'Task Master Node reference not set is socket namespace'
             )
 
-    def on_algorithm_status_change(self, data):
+    def on_algorithm_status_change(self, data) -> None:
         """
         Actions to be taken when an algorithm container in the collaboration
         has changed its status.
@@ -85,7 +86,7 @@ class NodeTaskNamespace(ClientNamespace):
         # else: no need to do anything when a task has started/finished/... on
         # another node
 
-    def on_expired_token(self):
+    def on_expired_token(self) -> None:
         """
         Action to be taken when node is notified by server that its token
         has expired.
@@ -100,7 +101,7 @@ class NodeTaskNamespace(ClientNamespace):
         self.node_worker_ref.sync_task_queue_with_server()
         self.log.debug("Tasks synced again with the server...")
 
-    def on_kill_containers(self, kill_info: dict):
+    def on_kill_containers(self, kill_info: dict) -> None:
         """
         Action to be taken when nodes are instructed by server to kill one or
         more tasks
@@ -128,3 +129,21 @@ class NodeTaskNamespace(ClientNamespace):
                 },
                 namespace='/tasks'
             )
+
+    def on_share_column_names(self, database_label: str,
+                              db_params: dict) -> None:
+        """
+        When the server asks for the column names for a certain database,
+        send them back to the server.
+
+        Parameters
+        ----------
+        database_label: str
+            The label of the database for which the column names are requested.
+        db_params: dict
+            A dictionary with the database parameters, such as a query for a
+            SQL database.
+        """
+        data = get_data_from_label(database_label, db_params)
+        column_names = list(data.columns)
+        pass

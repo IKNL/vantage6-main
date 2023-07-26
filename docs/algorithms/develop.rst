@@ -111,8 +111,8 @@ A second useful decorator is the ``@algorithm_client`` decorator:
     import pandas as pd
     from vantage6.client.algorithm_client import AlgorithmClient
 
-    @data()
     @algorithm_client
+    @data()
     def my_function(client: AlgorithmClient, df1: pd.DataFrame, column_name: str):
         pass
 
