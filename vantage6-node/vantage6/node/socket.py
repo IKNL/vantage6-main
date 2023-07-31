@@ -130,7 +130,7 @@ class NodeTaskNamespace(ClientNamespace):
                 namespace='/tasks'
             )
 
-    def on_share_column_names(self, database_label: str,
+    def on_share_column_names(self, db_data: dict,
                               db_params: dict) -> None:
         """
         When the server asks for the column names for a certain database,
@@ -138,12 +138,18 @@ class NodeTaskNamespace(ClientNamespace):
 
         Parameters
         ----------
+        db_data: dict
+            A dictionary with the database data, such as a query for a SQL
+            database.
         database_label: str
             The label of the database for which the column names are requested.
         db_params: dict
             A dictionary with the database parameters, such as a query for a
             SQL database.
         """
-        data = get_data_from_label(database_label, db_params)
+        label = db_data.get('label')
+        params = db_data.get('parameters')
+        data = get_data_from_label(label, params)
+        print(data)
         column_names = list(data.columns)
-        pass
+        print(column_names)

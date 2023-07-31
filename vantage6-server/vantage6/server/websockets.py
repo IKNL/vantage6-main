@@ -328,6 +328,29 @@ class DefaultSocketNamespace(Namespace):
         auth.last_seen = dt.datetime.utcnow()
         auth.save()
 
+    def on_request_column_names(self, db_label: str, db_params: dict,
+                                collaboration_id: int) -> None:
+        """
+        Send request to nodes that they send their column names for a
+        particular database request.
+
+        Parameters
+        ----------
+        db_label: str
+            Label of the database connection to use.
+        db_params: dict
+            Parameters to use for the database connection.
+        collaboration_id: int
+            Collaboration ID for which the request is made.
+        """
+        # only allow users to send this event
+        if session.type != 'user':
+            self.log.warning(
+                'Only users can requests to obtain column names! %s %s is not '
+                'allowed.', session.type, session.auth_id)
+            return
+        emit()
+
     def __join_room_and_notify(self, room: str) -> None:
         """
         Joins room and notify other clients in this room.
