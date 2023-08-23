@@ -133,7 +133,9 @@ def data(number_of_databases: int = 1) -> callable:
 
             for i in range(number_of_databases):
                 label = labels[i]
-                data_ = _get_data_from_label(label, input_data)
+                data_ = _get_data_from_label(
+                    label, input_data.get("databases")
+                )
                 args = (data_, *args)
 
             return func(*args, **kwargs)
@@ -141,7 +143,7 @@ def data(number_of_databases: int = 1) -> callable:
     return protection_decorator
 
 
-def _get_data_from_label(label: str, input_data: Any) -> pd.DataFrame:
+def _get_data_from_label(label: str, db_metadata: dict) -> pd.DataFrame:
     """
     Load data from a database based on the label
 
@@ -149,8 +151,8 @@ def _get_data_from_label(label: str, input_data: Any) -> pd.DataFrame:
     ----------
     label : str
         Label of the database to load
-    input_data : Any
-        Input data from the input file
+    db_metadata : dict
+        Metadata to help read the database
 
     Returns
     -------
@@ -174,5 +176,16 @@ def _get_data_from_label(label: str, input_data: Any) -> pd.DataFrame:
               f"label '{label}'. Please check the node configuration.")
         exit(1)
 
-    # Load the data from the database
-    return wrapper.load_data(database_uri, input_data)
+    # Find metadata for the database that the user provided
+    metadata = [db for db in db_metadata if db["label"] == label][0]
+    if database_type == "excel" and "sheet_name" in metadata:
+        return wrapper.load_data(database_uri, metadata["sheet_name"])
+    elif database_type in ("sparql", "sql", "omop"):
+        if "query" not in metadata:
+            error(f"Missing query for database with label '{label}'. Please "
+                  f"include it when creating the task.")
+            exit(1)
+        return wrapper.load_data(database_uri, metadata["query"])
+    else:
+        # Load the data from the database without additional arguments
+        return wrapper.load_data(database_uri)

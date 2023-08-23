@@ -35,13 +35,8 @@ swagger_template = {
                             " the key 'input' should give the input for that "
                             "organization. Each input should be a encrypted "
                             "and/or serialized dictionary that may contain the"
-                            " keys 'method', kwargs', 'args', and 'master'."
+                            " keys 'method', kwargs', 'args', and 'databases'."
                         )
-                    },
-                    "databases": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Databases to use for this task"
                     }
                 },
                 "example": {
@@ -49,7 +44,6 @@ swagger_template = {
                     "image": "hello-world",
                     "collaboration_id": 1,
                     "description": "human-readable-description",
-                    "databases": ["database1", "database2"],
                     "organizations": [
                         {
                             "id": 1,
@@ -57,13 +51,18 @@ swagger_template = {
                                 "method": "method-name",
                                 "kwargs": {"key": "value"},
                                 "args": ["arg1", "arg2"],
-                                "master": True
+                                "databases": [
+                                    {
+                                        "label": "database_label",
+                                        "query": "SELECT * FROM table"
+                                    }
+                                ]
                             }
                         }
                     ]
 
                 },
-                "required": ["image", "collaboration_id"]
+                "required": ["image", "collaboration_id", "organizations"]
             },
             "Organization": {
                 "properties": {

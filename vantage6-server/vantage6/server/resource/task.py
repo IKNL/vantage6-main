@@ -563,7 +563,13 @@ class Tasks(TaskBase):
         task.save()
 
         # save the databases that the task uses
-        databases = data.get('databases')
+        # TODO is this field still necessary if we define databases in the
+        # organization input? Or should we extend it with queries etc?
+        databases = list(set([
+            db
+            for org in organizations_json_list
+            for db in org.get('input', {}).get('databases', [])
+        ]))
         if not isinstance(databases, list):
             databases = [databases]
         for database in databases:

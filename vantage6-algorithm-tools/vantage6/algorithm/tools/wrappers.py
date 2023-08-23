@@ -61,7 +61,7 @@ def select_wrapper(database_type: str) -> WrapperBase | None:
 class WrapperBase(ABC):
     @staticmethod
     @abstractmethod
-    def load_data(database_uri: str, input_data: dict):
+    def load_data(database_uri: str, **kwargs):
         """
         Load the local privacy-sensitive data from the database.
 
@@ -69,15 +69,15 @@ class WrapperBase(ABC):
         ----------
         database_uri : str
             URI of the database to read
-        input_data : dict
-            User defined input, which may contain a query for the database
+        **kwargs
+            Additional parameters that may be required to read the database
         """
         pass
 
 
 class CSVWrapper(WrapperBase):
     @staticmethod
-    def load_data(database_uri: str, input_data: dict) -> pandas.DataFrame:
+    def load_data(database_uri: str) -> pandas.DataFrame:
         """
         Load the local privacy-sensitive data from the database.
 
@@ -85,8 +85,6 @@ class CSVWrapper(WrapperBase):
         ----------
         database_uri : str
             URI of the csv file, supplied by te node
-        input_data : dict
-            Unused, as csv files do not require a query
 
         Returns
         -------
@@ -98,7 +96,7 @@ class CSVWrapper(WrapperBase):
 
 class ExcelWrapper(WrapperBase):
     @staticmethod
-    def load_data(database_uri: str, input_data: dict) -> pandas.DataFrame:
+    def load_data(database_uri: str, sheet_name: str = 0) -> pandas.DataFrame:
         """
         Load the local privacy-sensitive data from the database.
 
@@ -106,24 +104,22 @@ class ExcelWrapper(WrapperBase):
         ----------
         database_uri : str
             URI of the excel file, supplied by te node
-        input_data : dict
-            May contain a 'sheet_name', which is passed to pandas.read_excel
+        sheet_name : str, optional
+            The worksheet to read, which is passed to pandas.read_excel. By
+            default, the first sheet '0' is read
 
         Returns
         -------
         pandas.DataFrame
             The data from the excel file
         """
-        # The default sheet_name is 0, which is the first sheet
-        sheet_name = input_data.get('sheet_name', 0)
-        if sheet_name:
-            info(f"Reading sheet '{sheet_name}' from excel file")
+        info(f"Reading sheet '{sheet_name}' from excel file")
         return pandas.read_excel(database_uri, sheet_name=sheet_name)
 
 
 class SparqlDockerWrapper(WrapperBase):
     @staticmethod
-    def load_data(database_uri: str, input_data: dict) -> pandas.DataFrame:
+    def load_data(database_uri: str, query: str) -> pandas.DataFrame:
         """
         Load the local privacy-sensitive data from the database.
 
@@ -139,9 +135,6 @@ class SparqlDockerWrapper(WrapperBase):
         pandas.DataFrame
             The data from the triplestore
         """
-        if 'query' not in input_data:
-            error("No query in the input specified. Exiting ...")
-        query = input_data['query']
         return SparqlDockerWrapper._query_triplestore(database_uri, query)
 
     @staticmethod
@@ -172,7 +165,7 @@ class SparqlDockerWrapper(WrapperBase):
 
 class ParquetWrapper(WrapperBase):
     @staticmethod
-    def load_data(database_uri: str, input_data: dict) -> pandas.DataFrame:
+    def load_data(database_uri: str) -> pandas.DataFrame:
         """
         Load the local privacy-sensitive data from the database.
 
@@ -180,8 +173,6 @@ class ParquetWrapper(WrapperBase):
         ----------
         database_uri : str
             URI of the parquet file, supplied by te node
-        input_data : dict
-            Unused, as no additional settings are required
 
         Returns
         -------
@@ -193,7 +184,7 @@ class ParquetWrapper(WrapperBase):
 
 class SQLWrapper(WrapperBase):
     @staticmethod
-    def load_data(database_uri: str, input_data: dict) -> pandas.DataFrame:
+    def load_data(database_uri: str, query: str) -> pandas.DataFrame:
         """
         Load the local privacy-sensitive data from the database.
 
@@ -201,22 +192,20 @@ class SQLWrapper(WrapperBase):
         ----------
         database_uri : str
             URI of the sql database, supplied by te node
-        input_data : dict
-            Contain a 'query', to retrieve the data from the database
+        query : str
+            The query to send to the database
 
         Returns
         -------
         pandas.DataFrame
             The data from the database
         """
-        if 'query' not in input_data:
-            error("No query in the input specified. Exiting ...")
-        return pandas.read_sql(database_uri, input_data['query'])
+        return pandas.read_sql(database_uri, query)
 
 
 class OMOPWrapper(WrapperBase):
     @staticmethod
-    def load_data(database_uri: str, input_data: dict) -> pandas.DataFrame:
+    def load_data(database_uri: str, query: str) -> pandas.DataFrame:
         """
         Load the local privacy-sensitive data from the database.
 
@@ -224,14 +213,13 @@ class OMOPWrapper(WrapperBase):
         ----------
         database_uri : str
             URI of the OMOP database, supplied by te node
-        input_data : dict
-            Contain a JSON cohort definition from the ATLAS tool, to retrieve
-            the data from the database
+        query: str
+            The query to send to the database
 
         Returns
         -------
         pandas.DataFrame
             The data from the database
         """
-        # TODO: parse the OMOP json and convert to SQL
-        return pandas.read_sql(database_uri, input_data['query'])
+        # TODO: replace query by OMOP json and convert to SQL
+        return pandas.read_sql(database_uri, query)

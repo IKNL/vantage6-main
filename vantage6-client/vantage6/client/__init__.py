@@ -1220,8 +1220,11 @@ class UserClient(ClientBase):
                 Human readable description
             input_ : dict
                 Algorithm input
-            databases: list[str], optional
-                Database names to be used at the node
+            databases: list[dict], optional
+                Database names to be used at the node. Each list item should
+                contain a 'label' key to identify which database to use.
+                Optional parameters are 'sheet_name' (if using Excel-file
+                database) or 'query' (if using SQL/SPARQL database)
 
             Returns
             -------
@@ -1232,13 +1235,16 @@ class UserClient(ClientBase):
             assert self.parent.cryptor, "Encryption has not yet been setup!"
 
             if organizations is None:
-                organizations = []
-            if databases is None:
-                databases = ['default']
-            elif isinstance(databases, str):
+                raise ValueError(
+                    'No organizations specified! Cannot create task without '
+                    'assigning it to at least one organization.')
+
+            if isinstance(databases, str):
                 # it is not unlikely that users specify a single database as a
-                # str, in that case we convert it to a list
-                databases = [databases]
+                # str, in that case we convert it to proper format
+                databases = [{'label': databases}]
+
+            input_['databases'] = databases
 
             # Data will be serialized in JSON.
             serialized_input = serialize(input_)
@@ -1261,7 +1267,6 @@ class UserClient(ClientBase):
                 "collaboration_id": collaboration,
                 "description": description,
                 "organizations": organization_json_list,
-                'databases': databases
             })
 
         def delete(self, id_: int) -> dict:
