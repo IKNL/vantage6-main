@@ -22,7 +22,7 @@ vantage6 server itself.
 :ref:`rabbitmq-install`
   If you have a server with a high workload whose performance you want to
   improve, you may want to set up a RabbitMQ service which enables horizontal
-  scaling of the Vantage6 server.
+  scaling of the vantage6 server.
 
 
 :ref:`smtp-server`

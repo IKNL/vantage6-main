@@ -8,4 +8,5 @@ The following pages each describe one feature of vantage6 algorithms.
    :caption: Contents:
 
    wrapper
+   preprocessing
    isolated_network

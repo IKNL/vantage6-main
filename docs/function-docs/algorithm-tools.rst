@@ -17,15 +17,15 @@ Algorithm tools
 
 .. _wrapper-function-docs:
 
-vantage6.tools.wrappers
-++++++++++++++++++++++
+vantage6.algorithm.tools.wrappers
++++++++++++++++++++++++++++++++++
 
 .. automodule:: vantage6.algorithm.tools.wrappers
    :members:
    :show-inheritance:
 
-vantage6.tools.wrap
-++++++++++++++++++++++
+vantage6.algorithm.tools.wrap
++++++++++++++++++++++++++++++
 
 .. automodule:: vantage6.algorithm.tools.wrap
    :members:
@@ -33,15 +33,15 @@ vantage6.tools.wrap
 
 .. _mock-client-api-ref:
 
-vantage6.tools.mock_client
-++++++++++++++++++++++++++
+vantage6.algorithm.tools.mock_client
+++++++++++++++++++++++++++++++++++++
 
 .. automodule:: vantage6.algorithm.tools.mock_client
    :members:
 
 
-vantage6.tools.util
-+++++++++++++++++++
+vantage6.algorithm.tools.util
++++++++++++++++++++++++++++++
 
 .. automodule:: vantage6.algorithm.tools.util
    :members:
