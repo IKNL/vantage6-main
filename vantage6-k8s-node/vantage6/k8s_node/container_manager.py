@@ -11,8 +11,9 @@ from typing import NamedTuple
 from enum import Enum
 from pathlib import Path
 
-import pod_node_constants
-import pod_job_constants
+
+from vantage6.k8s_node import pod_node_constants
+from vantage6.k8s_node import pod_job_constants
 import re
 import os
 import yaml

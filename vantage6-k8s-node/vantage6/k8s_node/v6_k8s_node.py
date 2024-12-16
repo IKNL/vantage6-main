@@ -9,8 +9,8 @@ from vantage6.node.socket import NodeTaskNamespace
 from vantage6.cli.context.node import NodeContext
 from vantage6.common.task_status import TaskStatus
 from vantage6.node.util import get_parent_id
-from log_manager import logs_setup
-from csv_utils import get_csv_column_names
+from vantage6.k8s_node.log_manager import logs_setup
+from vantage6.k8s_node.csv_utils import get_csv_column_names
 
 from vantage6.node.globals import (
     NODE_PROXY_SERVER_HOSTNAME,
@@ -19,7 +19,8 @@ from vantage6.node.globals import (
     TIME_LIMIT_INITIAL_CONNECTION_WEBSOCKET,
 )
 
-from container_manager import ContainerManager
+from vantage6.k8s_node.container_manager import ContainerManager
+from vantage6.k8s_node import pod_node_constants
 
 from socketio import Client as SocketIO
 import logging
@@ -35,7 +36,7 @@ import pprint
 import datetime
 import sys
 import threading
-import pod_node_constants
+
 
 # Based on https://github.com/vantage6/vantage6/blob/be2e82b33e68db74304ea01c778094e6b40e671a/vantage6-node/vantage6/node/__init__.py#L1
 
