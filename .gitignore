@@ -22,3 +22,5 @@ docs/function-docs/_autosummary
 
 # UI build files
 **/node_modules/
+
+.venv/

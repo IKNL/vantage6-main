@@ -2,10 +2,11 @@
 Resources below '/<api_base>/token'
 """
 
-import logging
-import pyotp
 import json
+import logging
+from http import HTTPStatus
 
+import pyotp
 from flask import request, g
 from flask_jwt_extended import (
     jwt_required,
@@ -14,21 +15,21 @@ from flask_jwt_extended import (
     get_jwt_identity,
 )
 from flask_restful import Api
-from http import HTTPStatus
 
 from vantage6 import server
-from vantage6.common.task_status import has_task_finished
 from vantage6.common.globals import MAIN_VERSION_NAME
+from vantage6.common.task_status import has_task_finished
 from vantage6.server import db
 from vantage6.server.model.user import User
 from vantage6.server.resource import with_node, ServicesResources
+from vantage6.server.resource import with_user
 from vantage6.server.resource.common.auth_helper import user_login, create_qr_uri
 from vantage6.server.resource.common.input_schema import (
     TokenAlgorithmInputSchema,
     TokenNodeInputSchema,
     TokenUserInputSchema,
 )
-from vantage6.server.resource import with_user
+from vantage6.server.resource.external_id import Callback
 
 module_name = __name__.split(".")[-1]
 log = logging.getLogger(module_name)
@@ -90,6 +91,13 @@ def setup(api: Api, api_base: str, services: dict) -> None:
         resource_class_kwargs=services,
     )
 
+    api.add_resource(
+        Callback,
+        path + "/callback",
+        endpoint="callback",
+        methods=("GET",),
+        resource_class_kwargs=services
+    )
 
 user_token_input_schema = TokenUserInputSchema()
 node_token_input_schema = TokenNodeInputSchema()
