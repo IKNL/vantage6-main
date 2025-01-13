@@ -1,9 +1,9 @@
 import codecs
 import os
-from os import path
-from pathlib import Path
 
-from setuptools import find_namespace_packages, setup
+from os import path
+from setuptools import setup, find_namespace_packages
+from pathlib import Path
 
 # get current directory
 here = Path(path.abspath(path.dirname(__file__)))
@@ -22,9 +22,9 @@ with codecs.open(version_path) as f:
 
 # setup the package
 setup(
-    name="vantage6_node",
+    name="vantage6_k8s_node",
     version=version_ns["__version__"],
-    description="vantage6 node",
+    description="vantage6 k8s-based node",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/vantage6/vantage6",
@@ -32,12 +32,11 @@ setup(
     python_requires=">=3.10",
     install_requires=[
         "click==8.1.3",
+        "kubernetes==28.1.0",
         "gevent==23.9.1",
         "jinja2==3.1.4",
-        "kubernetes==28.1.0",
         "python-socketio==5.7.2",
         "requests==2.32.3",
-        "parquet-tools==0.2.16",
         f'vantage6 == {version_ns["__version__"]}',
         f'vantage6-client == {version_ns["__version__"]}',
         f'vantage6-algorithm-tools == {version_ns["__version__"]}',
@@ -54,11 +53,11 @@ setup(
             "pre-commit",
         ]
     },
-    package_data={
-        "vantage6.node": [
-            "__build__",
-            "_data/*.*",
-        ],
-    },
-    entry_points={"console_scripts": ["vnode-local=vantage6.node.cli.node:cli_node"]},
+    #package_data={
+    #    "vantage6.k8s_node": [
+    #        "__build__",
+    ##        "_data/*.*",
+    #    ],
+    #},
+    #entry_points={"console_scripts": ["vnode-local=vantage6.node.cli.node:cli_node"]},
 )
