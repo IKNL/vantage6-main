@@ -2,14 +2,21 @@
 # to be cleaned at some point.
 import logging
 import os
+import socket
 import docker.errors
 import json
 import base64
 
 from pathlib import Path
 from docker import DockerClient
+from threading import Thread
 
-from vantage6.common.globals import APPNAME, ENV_VAR_EQUALS_REPLACEMENT, STRING_ENCODING
+from vantage6.common.globals import (
+    APPNAME,
+    ENV_VAR_EQUALS_REPLACEMENT,
+    STRING_ENCODING,
+    NodeDefaults,
+)
 from vantage6.common.docker.addons import (
     remove_container_if_exists,
     remove_container,
@@ -17,6 +24,7 @@ from vantage6.common.docker.addons import (
 )
 from vantage6.common.docker.network_manager import NetworkManager
 from vantage6.common.task_status import TaskStatus
+from vantage6.cli.context.algorithm_debug import AlgorithmDebugConfig
 from vantage6.node.util import get_parent_id
 from vantage6.node.globals import ALPINE_IMAGE, ENV_VARS_NOT_SETTABLE_BY_NODE
 from vantage6.node.docker.vpn_manager import VPNManager
@@ -55,6 +63,7 @@ class DockerTaskManager(DockerBaseManager):
         proxy: Squid | None = None,
         device_requests: list | None = None,
         requires_pull: bool = False,
+        debugger_algorithm: AlgorithmDebugConfig | None = None,
     ):
         """
         Initialization creates DockerTaskManager instance
@@ -106,6 +115,7 @@ class DockerTaskManager(DockerBaseManager):
         self.alpine_image = ALPINE_IMAGE if alpine_image is None else alpine_image
         self.proxy = proxy
         self.requires_pull = requires_pull
+        self.debugger_algorithm = debugger_algorithm
 
         self.container = None
         self.status_code = None
@@ -278,6 +288,11 @@ class DockerTaskManager(DockerBaseManager):
         remove_container(self.helper_container, kill=True)
         remove_container(self.container, kill=True)
 
+    def _log_container(self):
+        """Send container logs to node log"""
+        for line in self.container.logs(stream=True):
+            self.log.debug(f"Task {self.run_id}: {line.decode('utf-8').rstrip()}")
+
     def _run_algorithm(self) -> list[dict] | None:
         """
         Run the algorithm container
@@ -307,6 +322,8 @@ class DockerTaskManager(DockerBaseManager):
         )
 
         if self.__vpn_manager:
+            # TODO: this container seems to always be started, even if no VPN
+            # is configured
             # if VPN is active, network exceptions must be configured
             # First, start a container that runs indefinitely. The algorithm
             # container will run in the same network and network exceptions
@@ -338,6 +355,24 @@ class DockerTaskManager(DockerBaseManager):
             except Exception:
                 pass
 
+        # algorithms define their own entrypoint/cmd, but needs to be modified
+        # if run via a debugger
+        cmd = (
+            str(self.debugger_algorithm.docker_run_command())
+            if self.debugger_algorithm
+            else None
+        )
+        # ports are needed for debegger client to connect
+        ports = (
+            self.debugger_algorithm.docker_run_ports()
+            if self.debugger_algorithm
+            else None
+        )
+        # cmd is typically a path to an executable (./) that lives in debug_dir
+        working_dir = (
+            str(self.debugger_algorithm.debug_dir) if self.debugger_algorithm else None
+        )
+
         # attempt to run the image
         try:
             if deserialized_input:
@@ -347,20 +382,42 @@ class DockerTaskManager(DockerBaseManager):
                 )
             else:
                 self.log.info(f"Run docker image {self.image}")
+
             self.container = self.docker.containers.run(
                 self.image,
                 detach=True,
                 environment=self.environment_variables,
-                network="container:" + self.helper_container.id,
+                network=self.isolated_network_mgr.network_name,
+                # FIXME? before we had 'container:' +
+                # self.helper_container.id".  This was failing (can't specify
+                # ports?) Or was the problem that the network was defined as
+                # internal?  in any case... does that container: mean that it's
+                # the same network namespace as the other (vpn) contianer?  if
+                # we set both continaer to the same network
+                # (isolated_netowrk..), aren't we achieveing the same result?
+                # Perhaps not? Same network might not mean same network
+                # namespace. as in both container share the same IP within the
+                # network, etc..  I'd be OK not having debug capabilities with
+                # the current VPN implementation
                 volumes=self.volumes,
                 name=container_name,
                 labels=self.labels,
                 device_requests=self.device_requests,
+                command=cmd,
+                ports=ports,
+                working_dir=working_dir,
             )
 
         except Exception as e:
             self.status = TaskStatus.START_FAILED
             raise UnknownAlgorithmStartFail(e)
+
+        # print continaer logs to node logs so developer knows when to attach
+        # their debugger
+        # TODO: might be useful also even if not in algo debugging mode
+        if self.debugger_algorithm:
+            log_thread = Thread(target=self._log_container, daemon=True)
+            log_thread.start()
 
         self.status = TaskStatus.ACTIVE
         return vpn_ports
@@ -453,6 +510,39 @@ class DockerTaskManager(DockerBaseManager):
         else:
             volumes[self.__tasks_dir] = {"bind": self.data_folder, "mode": "rw"}
 
+        if self.debugger_algorithm:
+            # debugger directory (think debugpy module)
+            # if we are running in docker, the path we want to return is the
+            # path on the host's filesystem namespace, not the path within the
+            # (node) container where the algorihtm source has been mounted to
+            # for pre-flight check ups.
+            algo_debugger_mount_src = str(
+                self._host_path(self.debugger_algorithm.debug_dir)
+                if running_in_docker()
+                else self.debugger_algorithm.debug_dir
+            )
+
+            # debugger directory has a fixed mount point in
+            volumes[algo_debugger_mount_src] = {
+                "bind": NodeDefaults.ALGORITHM_DEBUG_DEBUGGER_MOUNT_POINT,
+                "mode": "rw",
+            }
+
+            # algorithm source
+            # idem, if running in docker, we don't want the path within the
+            # node container, we want the path on the host, as that's what the
+            # docker engine expects
+            algo_source_mount_src = str(
+                self._host_path(self.debugger_algorithm.algo_source_dir)
+                if running_in_docker()
+                else self.debugger_algorithm.algo_source_dir
+            )
+            volumes[algo_source_mount_src] = {
+                "bind": str(self.debugger_algorithm.algo_dest_dir),
+                "mode": "rw",
+            }
+
+
         return volumes
 
     def _setup_environment_vars(
@@ -477,7 +567,7 @@ class DockerTaskManager(DockerBaseManager):
             proxy_host = os.environ["PROXY_SERVER_HOST"]
 
         except Exception:
-            self.log.warn("PROXY_SERVER_HOST not set, using host.docker.internal")
+            self.log.warning("PROXY_SERVER_HOST not set, using host.docker.internal")
             self.log.debug("environment: %s", os.environ)
             proxy_host = "host.docker.internal"
 
@@ -606,6 +696,14 @@ class DockerTaskManager(DockerBaseManager):
             environment_variables
         )
 
+        # we control this environment variable and it's only used by algorithm
+        # developers while debugging. Not encoding it allows us to read it
+        # easily from a shell script within the algorithm container
+        if self.debugger_algorithm:
+            environment_variables[str(NodeDefaults.ALGORITHM_DEBUG_DEBUGGER_DIR_ENV_VAR)] = (
+                str(NodeDefaults.ALGORITHM_DEBUG_DEBUGGER_MOUNT_POINT)
+            )
+
         return environment_variables
 
     def _validate_environment_variables(self, environment_variables: dict) -> None:
@@ -693,3 +791,51 @@ class DockerTaskManager(DockerBaseManager):
         for key, val in environment_variables.items():
             encoded_environment_variables[key] = _encode(str(val))
         return encoded_environment_variables
+
+    def _host_path(self, container_path: Path) -> Path:
+        """
+        Get the host path of a container path.
+
+        Using the docker socket we can talk to the docker engine (running in
+        hosts's filesyste namespace) to find out to which host path does a
+        container path correspond.
+
+        Leverages docker's "Mount" information to find out if container_path
+        points to a file/dir within on the mounted volume's destations (mount
+        points)
+
+        Parameters
+        ----------
+        container_path: Path
+            Path within the container
+
+        Returns
+        -------
+        Path:
+            Path on the host's filesystem namespace
+        """
+        hostname = socket.gethostname()
+        container = self.docker.containers.get(hostname)
+
+        mounts = container.attrs["Mounts"]
+
+        # relative path to a mount destination
+        rel_to_dest = None
+        # mount source
+        mount_source = None
+        # iterate over "Destination" and see if trying relataive_to works (if
+        # our container_path is within it)
+        for mount in mounts:
+            mount_dest = Path(mount["Destination"])
+            try:
+                rel_to_dest = container_path.relative_to(mount_dest)
+                mount_source = Path(mount["Source"])
+            except ValueError:
+                continue
+
+        if rel_to_dest is None or mount_source is None:
+            raise ValueError(
+                f"Path {container_path} does not seem to come from a mount"
+            )
+
+        return mount_source / rel_to_dest

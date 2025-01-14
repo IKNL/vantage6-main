@@ -13,7 +13,6 @@ import logging
 import docker
 import re
 import shutil
-from docker.utils import parse_repository_tag
 
 from typing import NamedTuple
 from pathlib import Path
@@ -643,6 +642,7 @@ class DockerManager(DockerBaseManager):
             requires_pull=self._policies.get(
                 NodePolicy.REQUIRE_ALGORITHM_PULL, DEFAULT_REQUIRE_ALGO_IMAGE_PULL
             ),
+            debugger_algorithm=self.ctx.debugger_algorithm,
         )
 
         # attempt to kick of the task. If it fails do to unknown reasons we try
